@@ -144,7 +144,7 @@ def init_electronics(config):
 
     sgp30 = Adafruit_SGP30(i2c)
 
-    if not quiet:
+    if config.get(QUIET_MODE) is not True:
         print("Found SGP30, serial #", [hex(i) for i in sgp30.serial])
 
     sgp30.iaq_init()
@@ -154,7 +154,7 @@ def init_electronics(config):
         # We'll set the calibration baseline from what we have in the config YAML
         # (which was detected by running the sensor outside for 10 mins or so, and reading what it reported)
         sgp30.set_iaq_baseline(
-            hex(int(config[CO2_BASELINE], 16)), hex(int(config[TVOC_BASELINE], 16))
+            int(config[CO2_BASELINE], 16), int(config[TVOC_BASELINE], 16)
         )
 
     return pm25, sgp30

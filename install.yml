@@ -85,6 +85,7 @@
         - restart service
       tags:
         - always
+        - install
         - config
 
     - name: Install Systemd script
