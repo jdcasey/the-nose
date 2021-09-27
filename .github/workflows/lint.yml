@@ -9,4 +9,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: psf/black@stable
+    - name: Black Lint
+      uses: psf/black@stable
+
+    - name: Lint Ansible Playbook
+      uses: ansible/ansible-lint-action@v4.1.0
+      with:
+        targets: |
+          install.yml
