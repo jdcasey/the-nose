@@ -153,9 +153,7 @@ def init_electronics(config):
         # sgp30.set_iaq_baseline(0x8973, 0x8AAE)
         # We'll set the calibration baseline from what we have in the config YAML
         # (which was detected by running the sensor outside for 10 mins or so, and reading what it reported)
-        sgp30.set_iaq_baseline(
-            int(config[CO2_BASELINE], 16), int(config[TVOC_BASELINE], 16)
-        )
+        sgp30.set_iaq_baseline(config[CO2_BASELINE], config[TVOC_BASELINE])
 
     return pm25, sgp30
 
