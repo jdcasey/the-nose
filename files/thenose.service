@@ -1,0 +1,9 @@
+[Unit]
+Description=TheNose Air Quality Monitor
+
+[Service]
+Type=simple
+ExecStart=/home/pi/thenose/venv/bin/python3 /home/pi/thenose/measure.py /home/pi/.config/thenose/config.yaml
+
+[Install]
+WantedBy=multi-user.target
