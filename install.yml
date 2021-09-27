@@ -19,7 +19,7 @@
   vars:
     basedir: /home/pi/thenose
     confdir: /home/pi/.config/thenose
-    venv: "{{basedir}}/venv"
+    venv: "{{ basedir }}/venv"
 
   tasks:
 
@@ -27,6 +27,7 @@
       file:
         path: "{{ item }}"
         state: directory
+        mode: '0755'
       loop:
         - "{{ basedir }}"
         - "{{ confdir }}"
@@ -45,7 +46,7 @@
     - name: Install project directory contents
       copy:
         src: "{{ item.file }}"
-        dest: "{{basedir}}/{{ item.file }}"
+        dest: "{{ basedir }}/{{ item.file }}"
         mode: "{{ item.mode }}"
       loop:
         - file: measure.py
@@ -56,14 +57,15 @@
 
     - name: Install python packages
       pip:
-        requirements: "{{basedir}}/requirements.txt"
+        requirements: "{{ basedir }}/requirements.txt"
         virtualenv: "{{ venv }}"
 
 
     - name: Write configuration
       template:
         src: templates/config.yaml.j2
-        dest: "{{confdir}}/config.yaml"
+        dest: "{{ confdir }}/config.yaml"
+        mode: '0644'
 
 
 - hosts: monitors
