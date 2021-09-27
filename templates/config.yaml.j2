@@ -3,5 +3,7 @@ write_key: {{thenose_write_key}}
 dataset: {{thenose_dataset}}
 sample_frequency: {{thenose_sample_frequency|default(60)}}
 node_id: {{hostname}}
-{% if thenose_co2_baseline is defined %}co2_baseline: {{thenose_co2_baseline}}{% endif %}
-{% if thenose_tvoc_baseline is defined %}tvoc_baseline: {{thenose_tvoc_baseline}}{% endif %}
+{% if thenose_co2_baseline is defined %}co2_baseline: "{{thenose_co2_baseline}}"
+{% endif %}
+{% if thenose_tvoc_baseline is defined %}tvoc_baseline: "{{thenose_tvoc_baseline}}"
+{% endif %}

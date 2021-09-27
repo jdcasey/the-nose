@@ -1,6 +1,11 @@
 ---
 - hosts: monitors
-  remote_user: root
+  remote_user: pi
+
+  vars:
+    basedir: /home/pi/thenose
+    confdir: /home/pi/.config/thenose
+    venv: "{{ basedir }}/venv"
 
   tasks:
     - name: Install packages
@@ -11,17 +16,9 @@
         items:
           - python3-pip
           - python3-venv
-
-
-- hosts: monitors
-  remote_user: pi
-
-  vars:
-    basedir: /home/pi/thenose
-    confdir: /home/pi/.config/thenose
-    venv: "{{ basedir }}/venv"
-
-  tasks:
+      tags:
+        - never
+        - install
 
     - name: Create directories
       file:
@@ -31,16 +28,25 @@
       loop:
         - "{{ basedir }}"
         - "{{ confdir }}"
+      tags:
+        - never
+        - install
 
     - name: setup venv
       command: "python3 -m venv --system-site-packages {{ venv }}"
       args:
         creates: "{{ venv }}"
+      tags:
+        - never
+        - install
 
     - name: upgrade pip
       command: "{{ venv }}/bin/pip install pip --upgrade"
       register: pip_upgrade
       changed_when: "False == (pip_upgrade.stdout | regex_search('already up-to-date'))"
+      tags:
+        - never
+        - install
 
 
     - name: Install project directory contents
@@ -54,25 +60,35 @@
 
         - file: requirements.txt
           mode: '0644'
+      notify:
+        - restart service
+      tags:
+        - never
+        - install
 
     - name: Install python packages
       pip:
         requirements: "{{ basedir }}/requirements.txt"
         virtualenv: "{{ venv }}"
-
+      notify:
+        - restart service
+      tags:
+        - never
+        - install
 
     - name: Write configuration
       template:
         src: templates/config.yaml.j2
         dest: "{{ confdir }}/config.yaml"
         mode: '0644'
+      notify:
+        - restart service
+      tags:
+        - always
+        - config
 
-
-- hosts: monitors
-  remote_user: root
-
-  tasks:
     - name: Install Systemd script
+      become: yes
       copy:
         src: files/thenose.service
         dest: /etc/systemd/system
@@ -82,6 +98,9 @@
       notify:
         - reload systemd
         - restart service
+      tags:
+        - never
+        - install
 
   handlers:
     - name: reload systemd
