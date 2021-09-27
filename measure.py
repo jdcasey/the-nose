@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 
-
 import time
 import board
 import busio
@@ -13,13 +12,13 @@ import os
 import sys
 
 # These are configuration keys, to be found in your config.yaml file.
-WRITE_KEY = 'write_key'
-DATASET = 'dataset'
-SAMPLE_FREQUENCY = 'sample_frequency'
-CO2_BASELINE = 'co2_baseline'
-TVOC_BASELINE = 'tvoc_baseline'
-NODE_ID = 'node_id'
-QUIET_MODE = 'quiet'
+WRITE_KEY = "write_key"
+DATASET = "dataset"
+SAMPLE_FREQUENCY = "sample_frequency"
+CO2_BASELINE = "co2_baseline"
+TVOC_BASELINE = "tvoc_baseline"
+NODE_ID = "node_id"
+QUIET_MODE = "quiet"
 
 # Require the config-file to be present as a command-line arg. This works best with Systemd.
 if len(sys.argv) < 2:
@@ -65,7 +64,11 @@ def read_particulates(sensor, event, quiet=False):
         print("---------------------------------------")
         print(
             "PM 1.0: %d\tPM2.5: %d\tPM10: %d"
-            % (aqdata["pm10 standard"], aqdata["pm25 standard"], aqdata["pm100 standard"])
+            % (
+                aqdata["pm10 standard"],
+                aqdata["pm25 standard"],
+                aqdata["pm100 standard"],
+            )
         )
         print("Concentration Units (environmental)")
         print("---------------------------------------")
@@ -110,7 +113,9 @@ def read_volatiles(sensor, since_baseline, event, quiet=False):
         since_baseline = 0
 
         if event is None or quiet is False:
-            print(f"Baseline values: eCO2 = 0x{sensor.baseline_eCO2:x}, TVOC = 0x{sensor.baseline_TVOC:x}")
+            print(
+                f"Baseline values: eCO2 = 0x{sensor.baseline_eCO2:x}, TVOC = 0x{sensor.baseline_TVOC:x}"
+            )
 
         if event is not None:
             event.add_field("baseline_eCO2", f"0x{sensor.baseline_eCO2:x}")
@@ -148,7 +153,9 @@ def init_electronics(config):
         # sgp30.set_iaq_baseline(0x8973, 0x8AAE)
         # We'll set the calibration baseline from what we have in the config YAML
         # (which was detected by running the sensor outside for 10 mins or so, and reading what it reported)
-        sgp30.set_iaq_baseline(hex(int(config[CO2_BASELINE], 16)), hex(int(config[TVOC_BASELINE], 16)))
+        sgp30.set_iaq_baseline(
+            hex(int(config[CO2_BASELINE], 16)), hex(int(config[TVOC_BASELINE], 16))
+        )
 
     return pm25, sgp30
 

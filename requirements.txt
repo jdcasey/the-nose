@@ -2,3 +2,4 @@ adafruit-circuitpython-pm25
 adafruit-circuitpython-sgp30
 libhoney
 ruamel.yaml
+black
