@@ -2,6 +2,11 @@
 
 This project is an attempt to measure the environment where I work daily. My hope is to gain a better understanding of different environmental health factors, especially things that make my sinuses hate me.
 
+## Project Status
+
+* [![Lint](https://github.com/jdcasey/the-nose/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/jdcasey/the-nose/actions/workflows/lint.yml)
+
+
 ## What Can I Monitor?
 
 At this point, I'm able to monitor the following levels:
