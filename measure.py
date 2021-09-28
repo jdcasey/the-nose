@@ -150,12 +150,17 @@ def init_electronics(config):
         print("Found SGP30, serial #", [hex(i) for i in sgp30.serial])
 
     sgp30.iaq_init()
-    if config.get(CONFIG_CO2_BASELINE) is not None and config.get(CONFIG_TVOC_BASELINE) is not None:
+    if (
+        config.get(CONFIG_CO2_BASELINE) is not None
+        and config.get(CONFIG_TVOC_BASELINE) is not None
+    ):
         # This is the baseline that Adafruit mentions in their example code.
         # sgp30.set_iaq_baseline(0x8973, 0x8AAE)
         # We'll set the calibration baseline from what we have in the config YAML
         # (which was detected by running the sensor outside for 10 mins or so, and reading what it reported)
-        sgp30.set_iaq_baseline(config[CONFIG_CO2_BASELINE], config[CONFIG_TVOC_BASELINE])
+        sgp30.set_iaq_baseline(
+            config[CONFIG_CO2_BASELINE], config[CONFIG_TVOC_BASELINE]
+        )
 
     return pm25, sgp30
 
@@ -179,7 +184,10 @@ def run():
     honeycomb_enabled = False
 
     # NOTE: We use dict.get() here, not dict[key], since the keys may be missing!
-    if config.get(CONFIG_WRITE_KEY) is not None and config.get(CONFIG_DATASET) is not None:
+    if (
+        config.get(CONFIG_WRITE_KEY) is not None
+        and config.get(CONFIG_DATASET) is not None
+    ):
         libhoney.init(writekey=config[CONFIG_WRITE_KEY], dataset=config[CONFIG_DATASET])
         honeycomb_enabled = True
 
