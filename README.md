@@ -34,9 +34,15 @@ Currently, this project consists of the following hardware:
 * [Adafruit 50mm QWIIC cable](https://www.adafruit.com/product/4399) (x2)
 * 5V@2A USB micro B power supply
 
+Planned hardware:
+
+* [Adafruit MS8607 Pressure Humidity Temperature Breakout](https://www.adafruit.com/product/4716)
+
+Once planned additions are incorporated, the total hardware cost should be just under $100 US, excluding shipping and tax.
+
 ### Software
 
-Along with this hardware, I've written a simple Python script to perform the measurements and log them to [Honeycomb.io](https://honeycomb.io/). I've also written a Systemd boot service for the script, and Ansible automation for installing and updating the system.
+Along with this hardware, I've written a relatively simple Python script to perform the measurements and log them to [Honeycomb.io](https://honeycomb.io/). I've also written a Systemd boot service for the script, and Ansible automation for installing and updating the system.
 
 ## Raspberry Pi Prerequisites
 
