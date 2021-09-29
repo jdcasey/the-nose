@@ -6,6 +6,7 @@ import board
 import busio
 from adafruit_pm25.i2c import PM25_I2C
 from adafruit_sgp30 import Adafruit_SGP30
+from adafruit_scd30 import SCD30
 import libhoney
 from ruamel.yaml import YAML
 import os
@@ -19,6 +20,12 @@ CONFIG_CO2_BASELINE = "co2_baseline"
 CONFIG_TVOC_BASELINE = "tvoc_baseline"
 CONFIG_NODE_ID = "node_id"
 CONFIG_QUIET_MODE = "quiet"
+CONFIG_SENSORS = "sensors"
+
+SENSOR_PM25 = "pm25"
+SENSOR_SGP30 = "sgp30"
+SENSOR_SCD30 = "scd30"
+DEFAULT_SENSORS = [SENSOR_PM25, SENSOR_SGP30]
 
 BASELINE_FREQUENCY = 60
 
@@ -126,6 +133,34 @@ def read_volatiles(sensor, baseline_counter, event, quiet=False):
     return baseline_counter
 
 
+def read_real_co2(sensor, event, quiet=False):
+    """
+    Read the SCD30 sensor to get a direct measurement of CO₂ ppm
+    :param sensor: The SCD30 sensor to read
+    :param event: The Honeycomb event, into which sensor readings should be reported (may be None)
+    :param quiet: If True (and the Honeycomb event is available), sensor readings are suppressed from STDOUT
+    :return: None
+    """
+    for i in range(30):
+        if sensor.data_available:
+            if event is not None:
+                if quiet is False:
+                    print(
+                        f"CO₂: {sensor.CO2:.3g} PPM / "
+                        f"Temp: {sensor.temperature:.3g}\N{DEGREE SIGN} C / "
+                        f"Humidity: {sensor.relative_humidity:.3g}%"
+                    )
+
+                event.add_field("scd30.actual_CO2", sensor.CO2)
+                event.add_field("scd30.temp_C", sensor.temperature)
+                event.add_field("scd30.temp_F", ((9 / 5) * sensor.temperature) + 32)
+                event.add_field("scd30.rel_humidity", round(sensor.relative_humidity))
+
+            return None
+
+        time.sleep(0.5)
+
+
 def init_electronics(config):
     """
     Setup the sensors and the I²C bus. If we have a baseline configuration for the SGP30 sensor, set that here too.
@@ -139,30 +174,40 @@ def init_electronics(config):
     # Create library object, use 'slow' 100KHz frequency!
     i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
 
-    print("Starting PM2.5 sensor")
-    pm25 = PM25_I2C(i2c, reset_pin)
+    sensors = config.get(CONFIG_SENSORS) or DEFAULT_SENSORS
 
-    print("Found PM2.5 sensor.\nStarting SGP30 MOX sensor")
+    pm25 = None
+    if SENSOR_PM25 in sensors:
+        print("Starting PM2.5 sensor")
+        pm25 = PM25_I2C(i2c, reset_pin)
+        print("Found PM2.5 sensor.")
 
-    sgp30 = Adafruit_SGP30(i2c)
-
-    if config.get(CONFIG_QUIET_MODE) is not True:
+    sgp30 = None
+    if SENSOR_SGP30 in sensors:
+        print("Starting SGP30 MOX sensor")
+        sgp30 = Adafruit_SGP30(i2c)
         print("Found SGP30, serial #", [hex(i) for i in sgp30.serial])
 
-    sgp30.iaq_init()
-    if (
-        config.get(CONFIG_CO2_BASELINE) is not None
-        and config.get(CONFIG_TVOC_BASELINE) is not None
-    ):
-        # This is the baseline that Adafruit mentions in their example code.
-        # sgp30.set_iaq_baseline(0x8973, 0x8AAE)
-        # We'll set the calibration baseline from what we have in the config YAML
-        # (which was detected by running the sensor outside for 10 mins or so, and reading what it reported)
-        sgp30.set_iaq_baseline(
-            config[CONFIG_CO2_BASELINE], config[CONFIG_TVOC_BASELINE]
-        )
+        sgp30.iaq_init()
+        if (
+            config.get(CONFIG_CO2_BASELINE) is not None
+            and config.get(CONFIG_TVOC_BASELINE) is not None
+        ):
+            # This is the baseline that Adafruit mentions in their example code.
+            # sgp30.set_iaq_baseline(0x8973, 0x8AAE)
+            # We'll set the calibration baseline from what we have in the config YAML
+            # (which was detected by running the sensor outside for 10 mins or so, and reading what it reported)
+            sgp30.set_iaq_baseline(
+                config[CONFIG_CO2_BASELINE], config[CONFIG_TVOC_BASELINE]
+            )
 
-    return pm25, sgp30
+    scd30 = None
+    if SENSOR_SCD30 in sensors:
+        print("Starting SCD30 CO2 sensor")
+        scd30 = SCD30(i2c)
+        print("Found SCD30 sensor.")
+
+    return pm25, sgp30, scd30
 
 
 def run():
@@ -178,7 +223,7 @@ def run():
         exit(1)
 
     # Setup the sensors and I²C bus
-    pm25, sgp30 = init_electronics(config)
+    pm25, sgp30, scd30 = init_electronics(config)
 
     # Setup Honeycomb reporting...
     honeycomb_enabled = False
@@ -218,8 +263,14 @@ def run():
             sample_counter = 0
 
         # Read particulate data, then read CO₂ / VOC data...report it to screen and/or Honeycomb event
-        read_particulates(pm25, event, quiet)
-        baseline_counter = read_volatiles(sgp30, baseline_counter, event, quiet)
+        if pm25 is not None:
+            read_particulates(pm25, event, quiet)
+
+        if sgp30 is not None:
+            baseline_counter = read_volatiles(sgp30, baseline_counter, event, quiet)
+
+        if scd30 is not None:
+            read_real_co2(scd30, event, quiet)
 
         # If we're using Honeycomb, close/send the event.
         if event is not None:
