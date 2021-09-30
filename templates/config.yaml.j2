@@ -7,3 +7,4 @@ node_id: {{hostname}}
 {% endif %}
 {% if thenose_tvoc_baseline is defined %}tvoc_baseline: {{thenose_tvoc_baseline}}
 {% endif %}
+sensors: {{thenose_sensors|default(['pm25', 'sgp30'])}}
