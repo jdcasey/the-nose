@@ -2,7 +2,7 @@
 
 
 import time
-import board
+from board import SDA, SCL
 import busio
 from adafruit_pm25.i2c import PM25_I2C
 from adafruit_sgp30 import Adafruit_SGP30
@@ -172,7 +172,7 @@ def init_electronics(config):
     print("Starting I2C bus...")
 
     # Create library object, use 'slow' 100KHz frequency!
-    i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
+    i2c = busio.I2C(SCL, SDA, frequency=100000)
 
     sensors = config.get(CONFIG_SENSORS) or DEFAULT_SENSORS
 
@@ -228,39 +228,34 @@ def run():
     # Setup Honeycomb reporting...
     honeycomb_enabled = False
 
-    # NOTE: We use dict.get() here, not dict[key], since the keys may be missing!
-    if (
-        config.get(CONFIG_WRITE_KEY) is not None
-        and config.get(CONFIG_DATASET) is not None
-    ):
-        libhoney.init(writekey=config[CONFIG_WRITE_KEY], dataset=config[CONFIG_DATASET])
-        honeycomb_enabled = True
-
     # Read some basic parameters from config, for our sensor loop...
     sample_freq = config.get(CONFIG_SAMPLE_FREQUENCY) or 60
     node_id = config.get(CONFIG_NODE_ID) or "unknown"
     quiet = config.get(CONFIG_QUIET_MODE) or False
 
+    # NOTE: We use dict.get() here, not dict[key], since the keys may be missing!
+    if (
+            config.get(CONFIG_WRITE_KEY) is not None
+            and config.get(CONFIG_DATASET) is not None
+    ):
+        libhoney.init(writekey=config[CONFIG_WRITE_KEY], dataset=config[CONFIG_DATASET], sample_rate=sample_freq)
+        honeycomb_enabled = True
+
     baseline_counter = 0
-    sample_counter = 0
 
     # Loop forever...
     while True:
-        sample_counter += 1
-
         # If Honeycomb is available, we MAY initialize a new event for the sensors to use (see below)
         event = None
 
         # NOTE: This while loop will run every second, regardless of sampling frequency.
-        # This means sampling frequency is actually DOWN-SAMPLING the basic loop, so we keep a
-        # sample counter to calculate when to generate / send an event.
+        # This means sampling frequency is actually DOWN-SAMPLING the basic loop.
         #
         # This means sampling_frequency is still specified in terms of seconds between reported samples,
         # even though we're pulling data from the sensor every second.
-        if honeycomb_enabled and sample_counter > sample_freq:
+        if honeycomb_enabled:
             event = libhoney.new_event()
             event.add_field("node", node_id)
-            sample_counter = 0
 
         # Read particulate data, then read CO₂ / VOC data...report it to screen and/or Honeycomb event
         if pm25 is not None:

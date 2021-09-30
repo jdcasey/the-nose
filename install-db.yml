@@ -1,0 +1,38 @@
+---
+- hosts: monitors
+  become: yes
+  remote_user: pi
+
+  vars:
+
+  tasks:
+    - name: Install influx apt key
+      apt_key:
+        url: https://repos.influxdata.com/influxdb.key
+        id: 684A14CF2582E0C5
+
+    - name: Install influx apt repo
+      apt_repository:
+        repo: deb https://repos.influxdata.com/debian buster stable
+        filename: influxdb
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install packages
+      apt:
+        name: "{{ items }}"
+      vars:
+        items:
+          - influxdb
+      notify:
+        - restart influxdb
+
+  handlers:
+    - name: restart influxdb
+      systemd:
+        name: influxdb
+        enabled: yes
+        state: restarted
