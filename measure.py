@@ -266,10 +266,14 @@ def run():
 
     # NOTE: We use dict.get() here, not dict[key], since the keys may be missing!
     if (
-            config.get(CONFIG_WRITE_KEY) is not None
-            and config.get(CONFIG_DATASET) is not None
+        config.get(CONFIG_WRITE_KEY) is not None
+        and config.get(CONFIG_DATASET) is not None
     ):
-        libhoney.init(writekey=config[CONFIG_WRITE_KEY], dataset=config[CONFIG_DATASET], sample_rate=sample_freq)
+        libhoney.init(
+            writekey=config[CONFIG_WRITE_KEY],
+            dataset=config[CONFIG_DATASET],
+            sample_rate=sample_freq,
+        )
         honeycomb_enabled = True
 
     baseline_counter = 0
