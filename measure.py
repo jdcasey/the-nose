@@ -7,6 +7,7 @@ import busio
 from adafruit_pm25.i2c import PM25_I2C
 from adafruit_sgp30 import Adafruit_SGP30
 from adafruit_scd30 import SCD30
+from adafruit_ms8607 import MS8607
 import libhoney
 from ruamel.yaml import YAML
 import os
@@ -18,13 +19,14 @@ CONFIG_DATASET = "dataset"
 CONFIG_SAMPLE_FREQUENCY = "sample_frequency"
 CONFIG_CO2_BASELINE = "co2_baseline"
 CONFIG_TVOC_BASELINE = "tvoc_baseline"
-CONFIG_NODE_ID = "node_id"
+CONFIG_LOCATION = "location"
 CONFIG_QUIET_MODE = "quiet"
 CONFIG_SENSORS = "sensors"
 
 SENSOR_PM25 = "pm25"
 SENSOR_SGP30 = "sgp30"
 SENSOR_SCD30 = "scd30"
+SENSOR_MS8607 = "ms8607"
 DEFAULT_SENSORS = [SENSOR_PM25, SENSOR_SGP30]
 
 BASELINE_FREQUENCY = 60
@@ -55,7 +57,7 @@ def read_particulates(sensor, event, quiet=False):
     Read the PMSA003I air quality sensor to get particulate data.
     :param sensor: The sensor object to read from
     :param event: The Honeycomb event into which sensor reading should be added. Can be None
-    :param quiet: If True (and the Honeycomb event is available), sensor readings are suppressed from STDOUT
+    :param quiet: If True (or the Honeycomb event is unavailable), sensor readings are suppressed from STDOUT
     :return: None
     """
     try:
@@ -105,7 +107,7 @@ def read_volatiles(sensor, baseline_counter, event, quiet=False):
     :param sensor: The SGP30 sensor to read
     :param baseline_counter: The last time we collected / printed candidate baseline settings (useful for calibrating)
     :param event: The Honeycomb event, into which sensor readings should be reported
-    :param quiet: If True (and the Honeycomb event is available), sensor readings are suppressed from STDOUT
+    :param quiet: If True (or the Honeycomb event is unavailable), sensor readings are suppressed from STDOUT
     :return: The new since_baseline counter value
     """
     baseline_counter += 1
@@ -138,7 +140,7 @@ def read_real_co2(sensor, event, quiet=False):
     Read the SCD30 sensor to get a direct measurement of CO₂ ppm
     :param sensor: The SCD30 sensor to read
     :param event: The Honeycomb event, into which sensor readings should be reported (may be None)
-    :param quiet: If True (and the Honeycomb event is available), sensor readings are suppressed from STDOUT
+    :param quiet: If True (or the Honeycomb event is unavailable), sensor readings are suppressed from STDOUT
     :return: None
     """
     for i in range(30):
@@ -159,6 +161,28 @@ def read_real_co2(sensor, event, quiet=False):
             return None
 
         time.sleep(0.5)
+
+
+def read_pht(sensor, event, quiet=False):
+    """
+    Read the MS8607 PHT sensor to get direct measurements of pressure, relative humidity, and temp.
+    :param sensor: The MS8607 sensor to read
+    :param event: The Honeycomb event, into which sensor readings should be reported (may be a NO-OP event)
+    :param quiet: If True (or the Honeycomb event is unavailable), sensor readings are suppressed from STDOUT
+    :return: None
+    """
+    if event is not None:
+        if quiet is False:
+            print("Pressure: %.2f hPa" % sensor.pressure)
+            print("Temperature: %.2f C" % sensor.temperature)
+            print("Humidity: %.2f %% rH" % sensor.relative_humidity)
+
+        event.add_field("ms8607.pressure_hPa", sensor.pressure)
+        event.add_field("ms8607.temp_C", sensor.temperature)
+        event.add_field("ms8607.temp_F", ((9 / 5) * sensor.temperature) + 32)
+        event.add_field("ms8607.rel_humidity", round(sensor.relative_humidity))
+
+    return None
 
 
 def init_electronics(config):
@@ -205,9 +229,15 @@ def init_electronics(config):
     if SENSOR_SCD30 in sensors:
         print("Starting SCD30 CO2 sensor")
         scd30 = SCD30(i2c)
-        print("Found SCD30 sensor.")
+        print("Found SCD30 CO2 sensor.")
 
-    return pm25, sgp30, scd30
+    ms8607 = None
+    if SENSOR_MS8607 in sensors:
+        print("Starting MS8607 Pressure, Humidity, and Temp (PHT) sensor")
+        ms8607 = MS8607(i2c)
+        print("Found MS8607 PHT sensor")
+
+    return pm25, sgp30, scd30, ms8607
 
 
 def run():
@@ -223,14 +253,14 @@ def run():
         exit(1)
 
     # Setup the sensors and I²C bus
-    pm25, sgp30, scd30 = init_electronics(config)
+    pm25, sgp30, scd30, ms8607 = init_electronics(config)
 
     # Setup Honeycomb reporting...
     honeycomb_enabled = False
 
     # Read some basic parameters from config, for our sensor loop...
     sample_freq = config.get(CONFIG_SAMPLE_FREQUENCY) or 60
-    node_id = config.get(CONFIG_NODE_ID) or "unknown"
+    node_id = config.get(CONFIG_LOCATION) or "unknown"
     quiet = config.get(CONFIG_QUIET_MODE) or False
 
     # NOTE: We use dict.get() here, not dict[key], since the keys may be missing!
@@ -266,6 +296,9 @@ def run():
 
         if scd30 is not None:
             read_real_co2(scd30, event, quiet)
+
+        if ms8607 is not None:
+            read_pht(ms8607, event, quiet)
 
         # If we're using Honeycomb, close/send the event.
         if event is not None:
