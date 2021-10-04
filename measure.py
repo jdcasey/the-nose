@@ -12,6 +12,7 @@ import libhoney
 from ruamel.yaml import YAML
 import os
 import sys
+from uuid import uuid4
 
 # These are configuration keys, to be found in your config.yaml file.
 CONFIG_WRITE_KEY = "write_key"
@@ -260,7 +261,7 @@ def run():
 
     # Read some basic parameters from config, for our sensor loop...
     sample_freq = config.get(CONFIG_SAMPLE_FREQUENCY) or 60
-    node_id = config.get(CONFIG_LOCATION) or "unknown"
+    location = config.get(CONFIG_LOCATION) or "unknown"
     quiet = config.get(CONFIG_QUIET_MODE) or False
 
     # NOTE: We use dict.get() here, not dict[key], since the keys may be missing!
@@ -285,7 +286,9 @@ def run():
         # even though we're pulling data from the sensor every second.
         if honeycomb_enabled:
             event = libhoney.new_event()
-            event.add_field("node", node_id)
+            event.add_field("span_id", 1)
+            event.add_field("trace_id", uuid4())
+            event.add_field("location", location)
 
         # Read particulate data, then read CO₂ / VOC data...report it to screen and/or Honeycomb event
         if pm25 is not None:
