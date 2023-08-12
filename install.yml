@@ -9,7 +9,7 @@
 
   tasks:
     - name: Install packages
-      apt:
+      ansible.builtin.apt:
         name: "{{ items }}"
       become: true
       vars:
@@ -21,7 +21,7 @@
         - install
 
     - name: Create directories
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         mode: '0755'
@@ -33,7 +33,7 @@
         - install
 
     - name: setup venv
-      command: "python3 -m venv --system-site-packages {{ venv }}"
+      ansible.builtin.command: "python3 -m venv --system-site-packages {{ venv }}"
       args:
         creates: "{{ venv }}"
       tags:
@@ -41,16 +41,15 @@
         - install
 
     - name: upgrade pip
-      command: "{{ venv }}/bin/pip install pip --upgrade"
+      ansible.builtin.command: "{{ venv }}/bin/pip install pip --upgrade"
       register: pip_upgrade
       changed_when: "False == (pip_upgrade.stdout | regex_search('already up-to-date'))"
       tags:
         - never
         - install
 
-
     - name: Install project directory contents
-      copy:
+      ansible.builtin.copy:
         src: "{{ item.file }}"
         dest: "{{ basedir }}/{{ item.file }}"
         mode: "{{ item.mode }}"
@@ -67,7 +66,7 @@
         - install
 
     - name: Install python packages
-      pip:
+      ansible.builtin.pip:
         requirements: "{{ basedir }}/requirements.txt"
         virtualenv: "{{ venv }}"
       notify:
@@ -77,7 +76,7 @@
         - install
 
     - name: Write configuration
-      template:
+      ansible.builtin.template:
         src: templates/config.yaml.j2
         dest: "{{ confdir }}/config.yaml"
         mode: '0644'
@@ -90,10 +89,10 @@
 
     - name: Install Systemd script
       become: yes
-      copy:
-        src: files/thenose.service
-        dest: /etc/systemd/system
-        mode: '0755'
+      ansible.builtin.template:
+        src: files/thenose.service.j2
+        dest: /etc/systemd/system/thenose.service
+        mode: '0700'
         owner: root
         group: root
       notify:
@@ -106,12 +105,12 @@
   handlers:
     - name: reload systemd
       become: yes
-      systemd:
+      ansible.builtin.systemd:
         daemon_reload: yes
 
     - name: restart service
       become: yes
-      systemd:
+      ansible.builtin.systemd:
         name: thenose
         enabled: yes
         state: restarted

@@ -3,6 +3,9 @@ Description=TheNose Air Quality Monitor
 
 [Service]
 Type=simple
+Environment="OTEL_SERVICE_NAME={{thenose_dataset}}"
+Environment="OTEL_EXPORTER_OTLP_ENDPOINT="https://api.honeycomb.io"
+Environment="OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team={{thenose_write_key}}"
 ExecStart=/home/pi/thenose/venv/bin/python3 /home/pi/thenose/measure.py /home/pi/.config/thenose/config.yaml
 
 [Install]

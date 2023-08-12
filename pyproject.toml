@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "thenose"
+version = "1.0.1"
+description = "Air quality datalogger using sensors from Adafruit, emitting data events over OpenTelemetry"
+authors = ["John Casey <jdcasey@commonjava.org>"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+adafruit-circuitpython-pm25 = "^2.1.14"
+adafruit-circuitpython-sgp30 = "^3.0.7"
+adafruit-circuitpython-scd30 = "^2.2.10"
+adafruit-circuitpython-ms8607 = "^1.0.19"
+"ruamel.yaml" = "^0.17.32"
+opentelemetry-api = "^1.19.0"
+opentelemetry-sdk = "^1.19.0"
+opentelemetry-exporter-otlp-proto-http = "^1.19.0"
+adafruit-blinka = "^8.20.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+pylint = "^2.17.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
